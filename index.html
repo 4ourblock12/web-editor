@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Achievement Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        /* CSS Reset & Base Styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            line-height: 1.6;
+        }
+
+        h1, h2, h3 {
+            font-family: 'Press Start 2P', monospace;
+            text-transform: uppercase;
+        }
+
+        /* Layout */
+        header {
+            background-color: #1a1a1a;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 4px solid #333;
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            color: #55FF55; /* Minecraft Green */
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        .main-container {
+            display: flex;
+            flex-wrap: wrap;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .panel {
+            background-color: #1e1e1e;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            flex: 1;
+            min-width: 300px;
+        }
+
+        /* Form Controls */
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        input[type="text"], select {
+            width: 100%;
+            padding: 10px;
+            background-color: #2a2a2a;
+            border: 2px solid #444;
+            color: #fff;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+
+        input[type="text"]:focus, select:focus {
+            outline: none;
+            border-color: #55FF55;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            padding: 5px;
+            background-color: #2a2a2a;
+            border: 2px solid #444;
+            color: #fff;
+            border-radius: 4px;
+        }
+
+        input[type="color"] {
+            width: 50px;
+            height: 40px;
+            padding: 0;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background-color: #55FF55;
+            color: #000;
+            border: none;
+            border-bottom: 4px solid #22aa22;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.1s;
+        }
+
+        .btn:active {
+            border-bottom: 0;
+            transform: translateY(4px);
+        }
+
+        /* Achievement Preview Card Styles */
+        .preview-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
+            background-color: #000;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .achievement-card {
+            display: flex;
+            align-items: center;
+            background-color: #212121; /* Default Dark */
+            border: 4px solid #555555;
+            padding: 15px;
+            min-width: 350px;
+            max-width: 100%;
+            position: relative;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.5);
+            /* Animation */
+            animation: slideDownFade 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes slideDownFade {
+            0% {
+                opacity: 0;
+                transform: translateY(-40px) scale(0.9);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .ach-icon-container {
+            margin-right: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .ach-icon {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+            image-rendering: pixelated; /* Keeps pixel art sharp */
+        }
+
+        .ach-text {
+            font-family: 'Press Start 2P', monospace;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .ach-title {
+            color: #FFFF55; /* Minecraft Yellow */
+            font-size: 12px;
+            line-height: 1.2;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        .ach-desc {
+            color: #FFFFFF;
+            font-size: 10px;
+            line-height: 1.4;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 40px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+            header h1 {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Minecraft Achievement Generator</h1>
+    </header>
+
+    <div class="main-container">
+        <div class="panel">
+            <h2 style="font-size: 1rem; margin-bottom: 20px; color: #fff;">Settings</h2>
+            
+            <div class="control-group">
+                <label for="iconInput">Icon / Logo Image</label>
+                <input type="file" id="iconInput" accept="image/*">
+            </div>
+
+            <div class="control-group">
+                <label for="titleInput">Achievement Title</label>
+                <input type="text" id="titleInput" value="Achievement Get!" placeholder="Enter title...">
+            </div>
+
+            <div class="control-group">
+                <label for="descInput">Description</label>
+                <input type="text" id="descInput" value="Taking Inventory" placeholder="Enter description...">
+            </div>
+
+            <div class="control-group">
+                <label for="bgStyle">Background Style</label>
+                <select id="bgStyle">
+                    <option value="#212121,#555555">Overworld (Dark Gray)</option>
+                    <option value="#300000,#700000">Nether (Dark Red)</option>
+                    <option value="#1A0033,#4A0080">The End (Dark Purple)</option>
+                    <option value="#002200,#005500">Jungle (Dark Green)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="titleColor">Title Text Color</label>
+                <input type="color" id="titleColor" value="#FFFF55">
+            </div>
+
+            <div class="control-group">
+                <label for="iconSize">Icon Size: <span id="iconSizeDisplay">48</span>px</label>
+                <input type="range" id="iconSize" min="32" max="96" value="48">
+            </div>
+
+            <button class="btn" id="downloadBtn">Download PNG</button>
+        </div>
+
+        <div class="panel">
+            <h2 style="font-size: 1rem; margin-bottom: 20px; color: #fff;">Live Preview</h2>
+            <div class="preview-wrapper" id="previewWrapper">
+                <div class="achievement-card" id="achievementCard">
+                    <div class="ach-icon-container">
+                        <img src="" alt="Icon" class="ach-icon" id="previewIcon">
+                    </div>
+                    <div class="ach-text">
+                        <div class="ach-title" id="previewTitle">Achievement Get!</div>
+                        <div class="ach-desc" id="previewDesc">Taking Inventory</div>
+                    </div>
+                </div>
+            </div>
+            <p style="text-align: center; margin-top: 15px; color: #888; font-size: 0.8rem;">
+                *Animations trigger on input changes to simulate the game feel.
+            </p>
+        </div>
+    </div>
+
+    <footer>
+        Minecraft Achievement Generator &copy; 2026. Not affiliated with Mojang or Microsoft.
+    </footer>
+
+    <script>
+        // DOM Elements
+        const titleInput = document.getElementById('titleInput');
+        const descInput = document.getElementById('descInput');
+        const iconInput = document.getElementById('iconInput');
+        const bgStyle = document.getElementById('bgStyle');
+        const titleColor = document.getElementById('titleColor');
+        const iconSize = document.getElementById('iconSize');
+        const iconSizeDisplay = document.getElementById('iconSizeDisplay');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        const previewTitle = document.getElementById('previewTitle');
+        const previewDesc = document.getElementById('previewDesc');
+        const previewIcon = document.getElementById('previewIcon');
+        const achievementCard = document.getElementById('achievementCard');
+
+        // State variables
+        let currentImageObj = new Image();
+
+        // 1. Generate a default "Grass Block" icon as base64 so it works out of the box without external links
+        function createDefaultIcon() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            
+            // Dirt base
+            ctx.fillStyle = '#866043';
+            ctx.fillRect(0, 0, 64, 64);
+            // Grass top
+            ctx.fillStyle = '#557A2B';
+            ctx.fillRect(0, 0, 64, 24);
+            // Little grass details
+            ctx.fillRect(0, 24, 16, 8);
+            ctx.fillRect(24, 24, 8, 12);
+            ctx.fillRect(48, 24, 16, 8);
+
+            return canvas.toDataURL('image/png');
+        }
+
+        // Initialize default icon
+        const defaultIconData = createDefaultIcon();
+        previewIcon.src = defaultIconData;
+        currentImageObj.src = defaultIconData;
+
+        // 2. Re-trigger Animation helper
+        function triggerAnimation() {
+            achievementCard.style.animation = 'none';
+            achievementCard.offsetHeight; // Trigger reflow
+            achievementCard.style.animation = 'slideDownFade 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards';
+        }
+
+        // 3. Update Preview DOM elements
+        function updatePreview() {
+            // Text updates
+            previewTitle.textContent = titleInput.value || ' ';
+            previewDesc.textContent = descInput.value || ' ';
+            
+            // Color updates
+            previewTitle.style.color = titleColor.value;
+            
+            // Background & Border updates
+            const [bgColor, borderColor] = bgStyle.value.split(',');
+            achievementCard.style.backgroundColor = bgColor;
+            achievementCard.style.borderColor = borderColor;
+
+            // Icon size update
+            const size = iconSize.value + 'px';
+            previewIcon.style.width = size;
+            previewIcon.style.height = size;
+            iconSizeDisplay.textContent = iconSize.value;
+        }
+
+        // 4. Handle Event Listeners
+        titleInput.addEventListener('input', updatePreview);
+        descInput.addEventListener('input', updatePreview);
+        titleColor.addEventListener('input', updatePreview);
+        
+        bgStyle.addEventListener('change', () => {
+            updatePreview();
+            triggerAnimation();
+        });
+
+        iconSize.addEventListener('input', updatePreview);
+
+        // Handle Image Upload
+        iconInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    previewIcon.src = event.target.result;
+                    currentImageObj.src = event.target.result;
+                    triggerAnimation();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // 5. Generate and Download Canvas
+        downloadBtn.addEventListener('click', () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            // Wait for font to be ready before drawing to canvas (important for web fonts)
+            document.fonts.ready.then(() => {
+                // Determine dimensions based on DOM elements to ensure identical look
+                const cardRect = achievementCard.getBoundingClientRect();
+                
+                // Add padding and border to canvas size
+                canvas.width = cardRect.width;
+                canvas.height = cardRect.height;
+
+                // Parse colors
+                const [bgColor, borderColor] = bgStyle.value.split(',');
+
+                // 1. Draw Background
+                ctx.fillStyle = bgColor;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // 2. Draw Border
+                ctx.strokeStyle = borderColor;
+                ctx.lineWidth = 8; // 4px border * 2 for inner/outer stroke simulation
+                ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+                // 3. Draw Icon
+                const size = parseInt(iconSize.value);
+                const padding = 15;
+                // Center icon vertically
+                const iconY = (canvas.height - size) / 2;
+                // Disable image smoothing for pixel art look
+                ctx.imageSmoothingEnabled = false; 
+                ctx.drawImage(currentImageObj, padding, iconY, size, size);
+
+                // 4. Draw Text
+                const textStartX = padding + size + 20;
+                ctx.textBaseline = 'top';
+
+                // Title
+                ctx.font = "12px 'Press Start 2P', monospace";
+                ctx.fillStyle = '#000000'; // Text shadow
+                ctx.fillText(titleInput.value || ' ', textStartX + 2, padding + 2);
+                ctx.fillStyle = titleColor.value; // Real color
+                ctx.fillText(titleInput.value || ' ', textStartX, padding);
+
+                // Description
+                ctx.font = "10px 'Press Start 2P', monospace";
+                ctx.fillStyle = '#000000'; // Text shadow
+                // Estimate vertical gap
+                const descY = padding + 20; 
+                ctx.fillText(descInput.value || ' ', textStartX + 2, descY + 2);
+                ctx.fillStyle = '#FFFFFF'; // Real color
+                ctx.fillText(descInput.value || ' ', textStartX, descY);
+
+                // 5. Trigger Download
+                const link = document.createElement('a');
+                link.download = 'minecraft_achievement.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        });
+
+        // Initial setup
+        updatePreview();
+    </script>
+</body>
+</html>
