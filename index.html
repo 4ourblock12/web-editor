@@ -136,7 +136,8 @@
             min-height: 200px;
             background-color: #000;
             border-radius: 4px;
-            overflow: hidden;
+            overflow-x: auto; /* Memungkinkan scroll jika teks sangat panjang */
+            padding: 20px;
             position: relative;
         }
 
@@ -146,8 +147,7 @@
             background-color: #212121; /* Default Dark */
             border: 4px solid #555555;
             padding: 15px;
-            min-width: 350px;
-            max-width: 100%;
+            width: max-content; /* Ukuran menyesuaikan konten secara presisi */
             position: relative;
             box-shadow: 5px 5px 15px rgba(0,0,0,0.5);
             overflow: hidden; /* Keep canvas drawing inside borders */
@@ -197,6 +197,7 @@
             gap: 10px;
             position: relative;
             z-index: 2; /* Above the canvas background */
+            white-space: nowrap; /* Teks akan selalu manjang ke kanan, mendorong ukuran box */
         }
 
         .ach-title {
@@ -589,28 +590,34 @@
                 ctx.lineWidth = 8; // 4px border * 2 because stroke is centered on the edge
                 ctx.strokeRect(0, 0, canvas.width, canvas.height);
 
-                // 3. Draw Icon
+                // 3. Draw Icon (Posisi Vertikal dihitung agar di tengah)
                 const size = parseInt(iconSize.value);
+                const borderOffset = 4; // Kompensasi border CSS 4px
                 const padding = 15;
-                const iconY = (canvas.height - size) / 2;
+                const iconY = Math.floor((canvas.height - size) / 2);
+                
                 ctx.imageSmoothingEnabled = false; // Pixel art aesthetic
-                ctx.drawImage(currentImageObj, padding, iconY, size, size);
+                ctx.drawImage(currentImageObj, borderOffset + padding, iconY, size, size);
 
-                // 4. Draw Text
-                const textStartX = padding + size + 20;
+                // 4. Draw Text (Posisi dihitung dinamis di tengah kotak)
+                const textStartX = borderOffset + padding + size + 20; // 20 adalah gap dari icon
                 ctx.textBaseline = 'top';
+
+                const textBlockHeight = 38; // Estimasi total tinggi teks (Title 14px + Gap 10px + Desc 14px)
+                const textStartY = Math.floor((canvas.height - textBlockHeight) / 2);
+                const titleY = textStartY;
+                const descY = textStartY + 24; // Jarak dari title (14) + Gap (10)
 
                 // Title Text
                 ctx.font = "12px 'Press Start 2P', monospace";
                 ctx.fillStyle = '#000000'; // Text shadow
-                ctx.fillText(titleInput.value || ' ', textStartX + 2, padding + 2);
+                ctx.fillText(titleInput.value || ' ', textStartX + 2, titleY + 2);
                 ctx.fillStyle = titleColor.value; // Real color
-                ctx.fillText(titleInput.value || ' ', textStartX, padding);
+                ctx.fillText(titleInput.value || ' ', textStartX, titleY);
 
                 // Description Text
                 ctx.font = "10px 'Press Start 2P', monospace";
                 ctx.fillStyle = '#000000'; // Text shadow
-                const descY = padding + 20; 
                 ctx.fillText(descInput.value || ' ', textStartX + 2, descY + 2);
                 ctx.fillStyle = '#FFFFFF'; // Real color
                 ctx.fillText(descInput.value || ' ', textStartX, descY);
