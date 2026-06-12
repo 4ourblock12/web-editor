@@ -150,8 +150,17 @@
             max-width: 100%;
             position: relative;
             box-shadow: 5px 5px 15px rgba(0,0,0,0.5);
+            overflow: hidden; /* Keep canvas drawing inside borders */
             /* Animation */
             animation: slideDownFade 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        #themeCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 0; /* Behind the text and icon */
         }
 
         @keyframes slideDownFade {
@@ -170,6 +179,8 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            position: relative;
+            z-index: 2; /* Above the canvas background */
         }
 
         .ach-icon {
@@ -184,6 +195,8 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
+            position: relative;
+            z-index: 2; /* Above the canvas background */
         }
 
         .ach-title {
@@ -245,12 +258,14 @@
             </div>
 
             <div class="control-group">
-                <label for="bgStyle">Background Style</label>
+                <label for="bgStyle">Biome / Theme</label>
                 <select id="bgStyle">
-                    <option value="#212121,#555555">Overworld (Dark Gray)</option>
-                    <option value="#300000,#700000">Nether (Dark Red)</option>
-                    <option value="#1A0033,#4A0080">The End (Dark Purple)</option>
-                    <option value="#002200,#005500">Jungle (Dark Green)</option>
+                    <option value="classic">Classic Overworld</option>
+                    <option value="nature">Overgrown Nature (Vines)</option>
+                    <option value="ocean">Deep Ocean (Bubbles & Kelp)</option>
+                    <option value="nether">Nether Depths (Lava Embers)</option>
+                    <option value="end">The End (Void Particles)</option>
+                    <option value="redstone">Redstone Circuitry</option>
                 </select>
             </div>
 
@@ -271,6 +286,9 @@
             <h2 style="font-size: 1rem; margin-bottom: 20px; color: #fff;">Live Preview</h2>
             <div class="preview-wrapper" id="previewWrapper">
                 <div class="achievement-card" id="achievementCard">
+                    <!-- Added Canvas for animated/painted backgrounds like Vines -->
+                    <canvas id="themeCanvas"></canvas>
+                    
                     <div class="ach-icon-container">
                         <img src="" alt="Icon" class="ach-icon" id="previewIcon">
                     </div>
@@ -305,11 +323,141 @@
         const previewDesc = document.getElementById('previewDesc');
         const previewIcon = document.getElementById('previewIcon');
         const achievementCard = document.getElementById('achievementCard');
+        const themeCanvas = document.getElementById('themeCanvas');
+        const themeCtx = themeCanvas.getContext('2d');
 
         // State variables
         let currentImageObj = new Image();
 
-        // 1. Generate a default "Grass Block" icon as base64 so it works out of the box without external links
+        // --- THEME CONFIGURATION & DRAWING LOGIC ---
+        const THEMES = {
+            classic: { 
+                bg: '#212121', border: '#555555',
+                draw: null // No extra decoration
+            },
+            nature: { 
+                bg: '#182e18', border: '#2d5a2d',
+                draw: (ctx, w, h) => {
+                    ctx.fillStyle = '#224a22'; // Vines base
+                    // Draw Vines from top
+                    const vines = [
+                        {x: 0.05, len: 0.4}, {x: 0.18, len: 0.25},
+                        {x: 0.32, len: 0.55}, {x: 0.45, len: 0.2},
+                        {x: 0.6, len: 0.5}, {x: 0.75, len: 0.3},
+                        {x: 0.9, len: 0.45}
+                    ];
+                    vines.forEach(v => {
+                        const vx = v.x * w;
+                        const vlen = v.len * h;
+                        ctx.fillRect(vx, 0, 8, vlen); // Stem
+                        // Leaves (Pixelated)
+                        ctx.fillRect(vx - 4, vlen * 0.3, 4, 4);
+                        ctx.fillRect(vx + 8, vlen * 0.6, 4, 4);
+                        ctx.fillRect(vx - 4, vlen * 0.8, 4, 4);
+                    });
+                    // Draw Moss at bottom
+                    ctx.fillStyle = '#1e381e';
+                    ctx.fillRect(0, h - 8, w, 8);
+                    ctx.fillRect(w * 0.15, h - 12, 16, 4);
+                    ctx.fillRect(w * 0.65, h - 16, 24, 8);
+                }
+            },
+            ocean: { 
+                bg: '#001a33', border: '#004080',
+                draw: (ctx, w, h) => {
+                    // Bubbles
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+                    const bubbles = [
+                        {x: 0.1, y: 0.8, r: 3}, {x: 0.2, y: 0.4, r: 2},
+                        {x: 0.35, y: 0.6, r: 4}, {x: 0.5, y: 0.2, r: 2},
+                        {x: 0.7, y: 0.5, r: 5}, {x: 0.85, y: 0.75, r: 3},
+                        {x: 0.95, y: 0.3, r: 2}
+                    ];
+                    bubbles.forEach(b => {
+                        ctx.beginPath();
+                        ctx.arc(b.x * w, b.y * h, b.r, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+                    // Kelp
+                    ctx.fillStyle = '#005522';
+                    ctx.fillRect(w * 0.08, h * 0.5, 6, h * 0.5);
+                    ctx.fillRect(w * 0.9, h * 0.4, 6, h * 0.6);
+                }
+            },
+            nether: { 
+                bg: '#290000', border: '#700000',
+                draw: (ctx, w, h) => {
+                    // Lava floor
+                    ctx.fillStyle = '#ff4500';
+                    ctx.fillRect(0, h - 6, w, 6);
+                    ctx.fillStyle = '#ffa500';
+                    ctx.fillRect(w*0.1, h - 6, 20, 2);
+                    ctx.fillRect(w*0.6, h - 6, 30, 2);
+                    // Floating Embers
+                    const embers = [
+                        {x: 0.15, y: 0.8, c: '#ff4500'}, {x: 0.25, y: 0.5, c: '#ffa500'},
+                        {x: 0.4, y: 0.7, c: '#ff4500'}, {x: 0.6, y: 0.3, c: '#ff0000'},
+                        {x: 0.8, y: 0.6, c: '#ffa500'}, {x: 0.9, y: 0.4, c: '#ff4500'}
+                    ];
+                    embers.forEach(e => {
+                        ctx.fillStyle = e.c;
+                        ctx.fillRect(e.x * w, e.y * h, 4, 4);
+                    });
+                }
+            },
+            end: { 
+                bg: '#14001f', border: '#3d005c',
+                draw: (ctx, w, h) => {
+                    // Void Stars / Enderman particles
+                    const particles = [
+                        {x: 0.1, y: 0.2}, {x: 0.3, y: 0.8}, {x: 0.5, y: 0.4},
+                        {x: 0.7, y: 0.9}, {x: 0.85, y: 0.3}, {x: 0.95, y: 0.7}
+                    ];
+                    particles.forEach(p => {
+                        ctx.fillStyle = '#aa00ff';
+                        ctx.fillRect(p.x * w, p.y * h, 4, 4);
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(p.x * w + 1, p.y * h + 1, 2, 2);
+                    });
+                    // Obsidian Pillars fading
+                    ctx.fillStyle = '#0f001a';
+                    ctx.fillRect(w * 0.15, 0, 16, h);
+                    ctx.fillRect(w * 0.8, 0, 20, h);
+                }
+            },
+            redstone: { 
+                bg: '#222222', border: '#8b0000',
+                draw: (ctx, w, h) => {
+                    // Circuit lines
+                    ctx.strokeStyle = '#8b0000';
+                    ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    // Left circuit
+                    ctx.moveTo(0, h * 0.3);
+                    ctx.lineTo(w * 0.15, h * 0.3);
+                    ctx.lineTo(w * 0.15, h * 0.7);
+                    ctx.lineTo(w * 0.25, h * 0.7);
+                    // Right circuit
+                    ctx.moveTo(w, h * 0.8);
+                    ctx.lineTo(w * 0.85, h * 0.8);
+                    ctx.lineTo(w * 0.85, h * 0.2);
+                    ctx.lineTo(w * 0.75, h * 0.2);
+                    ctx.stroke();
+
+                    // Active Redstone Dust
+                    ctx.fillStyle = '#ff0000';
+                    ctx.fillRect(w * 0.25, h * 0.7 - 2, 8, 8);
+                    ctx.fillRect(w * 0.75 - 8, h * 0.2 - 2, 8, 8);
+                    
+                    // Glow effect
+                    ctx.fillStyle = 'rgba(255, 0, 0, 0.15)';
+                    ctx.fillRect(w * 0.25 - 4, h * 0.7 - 6, 16, 16);
+                    ctx.fillRect(w * 0.75 - 12, h * 0.2 - 6, 16, 16);
+                }
+            }
+        };
+
+        // 1. Generate a default "Grass Block" icon
         function createDefaultIcon() {
             const canvas = document.createElement('canvas');
             canvas.width = 64;
@@ -342,7 +490,28 @@
             achievementCard.style.animation = 'slideDownFade 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards';
         }
 
-        // 3. Update Preview DOM elements
+        // 3. Render Background & Decals to Canvas
+        function renderThemeCanvas(canvasEl, ctx, width, height, themeId) {
+            const theme = THEMES[themeId] || THEMES['classic'];
+            
+            // Set exact dimensions
+            canvasEl.width = width;
+            canvasEl.height = height;
+
+            // Clear previous
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw base background
+            ctx.fillStyle = theme.bg;
+            ctx.fillRect(0, 0, width, height);
+
+            // Draw Custom Theme Decorations (Vines, Bubbles, etc)
+            if (theme.draw) {
+                theme.draw(ctx, width, height);
+            }
+        }
+
+        // 4. Update Preview DOM elements
         function updatePreview() {
             // Text updates
             previewTitle.textContent = titleInput.value || ' ';
@@ -351,10 +520,15 @@
             // Color updates
             previewTitle.style.color = titleColor.value;
             
-            // Background & Border updates
-            const [bgColor, borderColor] = bgStyle.value.split(',');
-            achievementCard.style.backgroundColor = bgColor;
-            achievementCard.style.borderColor = borderColor;
+            // Background & Border Theme updates
+            const selectedTheme = THEMES[bgStyle.value] || THEMES['classic'];
+            achievementCard.style.backgroundColor = selectedTheme.bg;
+            achievementCard.style.borderColor = selectedTheme.border;
+
+            // Update Background Canvas Decorations
+            const cardRect = achievementCard.getBoundingClientRect();
+            // We draw the theme canvas to match the card's inner size
+            renderThemeCanvas(themeCanvas, themeCtx, cardRect.width, cardRect.height, bgStyle.value);
 
             // Icon size update
             const size = iconSize.value + 'px';
@@ -363,7 +537,7 @@
             iconSizeDisplay.textContent = iconSize.value;
         }
 
-        // 4. Handle Event Listeners
+        // 5. Handle Event Listeners
         titleInput.addEventListener('input', updatePreview);
         descInput.addEventListener('input', updatePreview);
         titleColor.addEventListener('input', updatePreview);
@@ -374,6 +548,10 @@
         });
 
         iconSize.addEventListener('input', updatePreview);
+
+        // Responsive Resize Observer to keep canvas sharp
+        const resizeObserver = new ResizeObserver(() => updatePreview());
+        resizeObserver.observe(achievementCard);
 
         // Handle Image Upload
         iconInput.addEventListener('change', (e) => {
@@ -389,56 +567,49 @@
             }
         });
 
-        // 5. Generate and Download Canvas
+        // 6. Generate and Download Final PNG
         downloadBtn.addEventListener('click', () => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
 
-            // Wait for font to be ready before drawing to canvas (important for web fonts)
+            // Wait for font to be ready
             document.fonts.ready.then(() => {
-                // Determine dimensions based on DOM elements to ensure identical look
                 const cardRect = achievementCard.getBoundingClientRect();
                 
-                // Add padding and border to canvas size
                 canvas.width = cardRect.width;
                 canvas.height = cardRect.height;
 
-                // Parse colors
-                const [bgColor, borderColor] = bgStyle.value.split(',');
+                const selectedTheme = THEMES[bgStyle.value];
 
-                // 1. Draw Background
-                ctx.fillStyle = bgColor;
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                // 1. Draw Background & Decorations directly into download canvas
+                renderThemeCanvas(canvas, ctx, canvas.width, canvas.height, bgStyle.value);
 
-                // 2. Draw Border
-                ctx.strokeStyle = borderColor;
-                ctx.lineWidth = 8; // 4px border * 2 for inner/outer stroke simulation
+                // 2. Draw the Thick Border On Top
+                ctx.strokeStyle = selectedTheme.border;
+                ctx.lineWidth = 8; // 4px border * 2 because stroke is centered on the edge
                 ctx.strokeRect(0, 0, canvas.width, canvas.height);
 
                 // 3. Draw Icon
                 const size = parseInt(iconSize.value);
                 const padding = 15;
-                // Center icon vertically
                 const iconY = (canvas.height - size) / 2;
-                // Disable image smoothing for pixel art look
-                ctx.imageSmoothingEnabled = false; 
+                ctx.imageSmoothingEnabled = false; // Pixel art aesthetic
                 ctx.drawImage(currentImageObj, padding, iconY, size, size);
 
                 // 4. Draw Text
                 const textStartX = padding + size + 20;
                 ctx.textBaseline = 'top';
 
-                // Title
+                // Title Text
                 ctx.font = "12px 'Press Start 2P', monospace";
                 ctx.fillStyle = '#000000'; // Text shadow
                 ctx.fillText(titleInput.value || ' ', textStartX + 2, padding + 2);
                 ctx.fillStyle = titleColor.value; // Real color
                 ctx.fillText(titleInput.value || ' ', textStartX, padding);
 
-                // Description
+                // Description Text
                 ctx.font = "10px 'Press Start 2P', monospace";
                 ctx.fillStyle = '#000000'; // Text shadow
-                // Estimate vertical gap
                 const descY = padding + 20; 
                 ctx.fillText(descInput.value || ' ', textStartX + 2, descY + 2);
                 ctx.fillStyle = '#FFFFFF'; // Real color
@@ -446,7 +617,7 @@
 
                 // 5. Trigger Download
                 const link = document.createElement('a');
-                link.download = 'minecraft_achievement.png';
+                link.download = `achievement_${bgStyle.value}.png`;
                 link.href = canvas.toDataURL('image/png');
                 link.click();
             });
